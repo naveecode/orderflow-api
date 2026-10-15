@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>orderflow-api</title>
+  <meta name="description" content="Order management REST API. JWT auth, a validated status workflow, and idempotent order creation.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%231c1915'/%3E%3Cpath d='M3 8h10M8 3v10' stroke='%23f4f0e6' stroke-width='1.6'/%3E%3C/svg%3E">
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #1c1915;
+      --muted: #5c564c;
+      --line: #e4ddd0;
+      --paper: #f6f3ec;
+      --card: #fffdf8;
+      --accent: #0f6e56;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+      color: var(--ink);
+      background: var(--paper);
+      line-height: 1.5;
+    }
+    a { color: var(--accent); }
+    header, main { width: min(880px, calc(100% - 32px)); margin: 0 auto; }
+    header { padding: 48px 0 12px; }
+    .kicker {
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      font-size: 12px;
+      color: var(--muted);
+      margin: 0 0 8px;
+    }
+    h1 { font-size: 40px; line-height: 1.1; margin: 0 0 12px; font-weight: 650; }
+    .lede { font-size: 18px; max-width: 640px; margin: 0; }
+    .actions { display: flex; gap: 12px; flex-wrap: wrap; margin: 24px 0 8px; }
+    .actions a {
+      text-decoration: none;
+      border-radius: 999px;
+      padding: 8px 14px;
+      border: 1px solid var(--ink);
+    }
+    .actions a.primary { background: var(--ink); color: #f6f3ec; }
+    section { margin: 28px 0; }
+    h2 { font-size: 20px; margin: 0 0 10px; }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    article {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px 16px;
+    }
+    article h3 { margin: 0 0 6px; font-size: 16px; }
+    article p { margin: 0; color: var(--muted); font-size: 14px; }
+    .rail { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0 0; }
+    .rail span, .rail b {
+      border: 1px solid var(--line);
+      background: var(--card);
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 13px;
+    }
+    .rail b { border-color: var(--accent); color: var(--accent); font-weight: 650; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; background: var(--card); }
+    th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.92em; }
+    footer { width: min(880px, calc(100% - 32px)); margin: 12px auto 40px; color: var(--muted); font-size: 13px; }
+    @media (max-width: 720px) {
+      h1 { font-size: 32px; }
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <p class="kicker">Spring Boot 3 · Java 21</p>
+    <h1>orderflow-api</h1>
+    <p class="lede">An order management HTTP API with JWT roles, a validated status workflow, and idempotent order creation.</p>
+    <div class="actions">
+      <a class="primary" href="api/">API reference</a>
+      <a href="https://github.com/naveecode/orderflow-api">Source</a>
+    </div>
+  </header>
+  <main>
+    <section>
+      <h2>What it covers</h2>
+      <div class="grid">
+        <article>
+          <h3>Auth</h3>
+          <p>Register and log in. Access tokens carry USER or ADMIN, and every protected route checks the account still exists.</p>
+        </article>
+        <article>
+          <h3>Orders</h3>
+          <p>Create an order, page and filter it, then move it through CREATED, PAID, SHIPPED, DELIVERED, or CANCELLED.</p>
+        </article>
+        <article>
+          <h3>Reliability</h3>
+          <p>Idempotency-Key on create, optimistic locking on stock, Flyway migrations, and RFC 7807 errors.</p>
+        </article>
+      </div>
+    </section>
+    <section>
+      <h2>Status workflow</h2>
+      <div class="rail" aria-label="Order status workflow">
+        <span>CREATED</span>
+        <b>→ PAID</b>
+        <b>→ SHIPPED</b>
+        <b>→ DELIVERED</b>
+      </div>
+      <p>CREATED or PAID can also move to CANCELLED. Cancelling puts the stock back. Customers can pay or cancel their own orders. Shipping and delivery are ADMIN actions.</p>
+    </section>
+    <section id="problems">
+      <h2>Problem types</h2>
+      <p>Errors use <code>application/problem+json</code>. The <code>type</code> URI points at a row in this table.</p>
+      <table>
+        <thead>
+          <tr><th>Code</th><th>When</th></tr>
+        </thead>
+        <tbody>
+          <tr id="validation-failed"><td><code>VALIDATION_FAILED</code></td><td>A field, page, or sort value is invalid.</td></tr>
+          <tr id="malformed-request"><td><code>MALFORMED_REQUEST</code></td><td>The JSON body cannot be read.</td></tr>
+          <tr id="idempotency-key-required"><td><code>IDEMPOTENCY_KEY_REQUIRED</code></td><td>Order creation did not send Idempotency-Key.</td></tr>
+          <tr id="idempotency-key-invalid"><td><code>IDEMPOTENCY_KEY_INVALID</code></td><td>The key is not 8–128 safe characters.</td></tr>
+          <tr id="unauthorized"><td><code>UNAUTHORIZED</code></td><td>Missing, expired, or wrong credentials.</td></tr>
+          <tr id="forbidden"><td><code>FORBIDDEN</code></td><td>The role cannot perform the action.</td></tr>
+          <tr id="order-not-found"><td><code>ORDER_NOT_FOUND</code></td><td>No such order for this caller.</td></tr>
+          <tr id="product-not-found"><td><code>PRODUCT_NOT_FOUND</code></td><td>A line references a missing product.</td></tr>
+          <tr id="email-taken"><td><code>EMAIL_TAKEN</code></td><td>Registration email is already used.</td></tr>
+          <tr id="sku-taken"><td><code>SKU_TAKEN</code></td><td>Catalog SKU is already used.</td></tr>
+          <tr id="idempotency-conflict"><td><code>IDEMPOTENCY_CONFLICT</code></td><td>The key was reused with a different body.</td></tr>
+          <tr id="invalid-transition"><td><code>INVALID_TRANSITION</code></td><td>That status move is not in the workflow.</td></tr>
+          <tr id="insufficient-stock"><td><code>INSUFFICIENT_STOCK</code></td><td>The catalog cannot cover the quantity.</td></tr>
+          <tr id="product-unavailable"><td><code>PRODUCT_UNAVAILABLE</code></td><td>The product is inactive.</td></tr>
+          <tr id="conflict"><td><code>CONFLICT</code></td><td>A concurrent update or other constraint lost.</td></tr>
+          <tr id="internal-error"><td><code>INTERNAL_ERROR</code></td><td>Unexpected server failure.</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+  <footer>
+    Run the service locally with Docker Compose. Interactive Swagger UI is on the app at <code>/swagger-ui.html</code>. This site is the static reference.
+  </footer>
+</body>
+</html>
