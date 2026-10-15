@@ -9,4 +9,4 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-      - run: echo "stub: replace with ./mvnw -B verify once the Maven project lands"
+      - run: echo "Stub CI. Replace with ./mvnw -B verify once the Maven project lands."
