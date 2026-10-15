@@ -1,4 +1,11 @@
 target/
 .idea/
 *.iml
-.env*
+.classpath
+.project
+.settings/
+.vscode/
+*.log
+.env
+.env.*
+!.env.example
