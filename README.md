@@ -4,6 +4,8 @@ Order management REST API on Spring Boot 3 and Java 21. JWT auth with USER and A
 
 **Live docs:** [https://naveecode.github.io/orderflow-api/](https://naveecode.github.io/orderflow-api/) · [API reference](https://naveecode.github.io/orderflow-api/api/)
 
+![Local Swagger UI for orderflow-api 1.0.0, with Auth and the order endpoints expanded](docs/swagger-ui.png)
+
 [CI](https://github.com/naveecode/orderflow-api/actions/workflows/ci.yml) runs `./mvnw -B verify`.
 
 ## Stack
@@ -98,6 +100,8 @@ stateDiagram-v2
   PAID --> SHIPPED
   PAID --> CANCELLED
   SHIPPED --> DELIVERED
+  DELIVERED --> [*]
+  CANCELLED --> [*]
 ```
 
 | From | To | Who |
@@ -141,6 +145,55 @@ Flyway seeds an admin and three products. The password is for local demos.
 | OF-KBD-01 | Mechanical Keyboard | 129.00 | `22222222-2222-2222-2222-222222222201` |
 | OF-MSE-01 | Wireless Mouse | 49.00 | `22222222-2222-2222-2222-222222222202` |
 | OF-HUB-01 | USB-C Hub | 79.50 | `22222222-2222-2222-2222-222222222203` |
+
+## Try it
+
+Register, log in, place one keyboard order, then send the same request again. This transcript is from a local server on 2026-10-18. Use the access token from login as `$TOKEN`.
+
+```bash
+curl -sS -X POST http://localhost:8080/api/v1/auth/register \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"ada.tryit@example.com","password":"Password123","fullName":"Ada Lovelace"}'
+
+curl -sS -X POST http://localhost:8080/api/v1/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"ada.tryit@example.com","password":"Password123"}'
+
+curl -sS -X POST http://localhost:8080/api/v1/orders \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -H 'Idempotency-Key: 6f1e1b5a-2c3d-4e5f-8a9b-0c1d2e3f4a5b' \
+  -d '{"items":[{"productId":"22222222-2222-2222-2222-222222222201","quantity":1}]}'
+
+curl -sS -D - -X POST http://localhost:8080/api/v1/orders \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -H 'Idempotency-Key: 6f1e1b5a-2c3d-4e5f-8a9b-0c1d2e3f4a5b' \
+  -d '{"items":[{"productId":"22222222-2222-2222-2222-222222222201","quantity":1}]}'
+```
+
+Register returned `201`. Login returned `200` with `tokenType` `Bearer` and `expiresIn` `7200` (token omitted). The first create returned `201` and `Location: /api/v1/orders/56a0fe09-266b-4539-811e-b9822cbf4696`. The replay returned `200` and `Idempotency-Replayed: true` with the same order:
+
+```json
+{
+  "id": "56a0fe09-266b-4539-811e-b9822cbf4696",
+  "userId": "f04275f2-47b7-496f-b3e7-a078cf1f0da8",
+  "status": "CREATED",
+  "totalAmount": 129.00,
+  "items": [
+    {
+      "productId": "22222222-2222-2222-2222-222222222201",
+      "sku": "OF-KBD-01",
+      "productName": "Mechanical Keyboard",
+      "quantity": 1,
+      "unitPrice": 129.00,
+      "lineTotal": 129.00
+    }
+  ],
+  "createdAt": "2026-10-18T13:42:30.062749Z",
+  "updatedAt": "2026-10-18T13:42:30.062749Z"
+}
+```
 
 ## API examples
 
